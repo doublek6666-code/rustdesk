@@ -129,6 +129,15 @@ fn apply_env_config_overrides() {
             .insert("disable-settings".to_owned(), "Y".to_owned());
     }
     if env_bool(
+        &["RUSTDESK_DISABLE_INSTALLATION"],
+        option_env!("RUSTDESK_DISABLE_INSTALLATION"),
+    ) {
+        config::HARD_SETTINGS
+            .write()
+            .unwrap()
+            .insert("disable-installation".to_owned(), "Y".to_owned());
+    }
+    if env_bool(
         &["RUSTDESK_HIDE_SERVER_SETTINGS", "RUSTDESK_CONFIG_FORBID_CHANGE"],
         option_env!("RUSTDESK_HIDE_SERVER_SETTINGS")
             .or(option_env!("RUSTDESK_CONFIG_FORBID_CHANGE")),

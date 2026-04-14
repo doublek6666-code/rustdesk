@@ -28,6 +28,7 @@ env:
   RUSTDESK_CONFIG_FORBID_CHANGE: "true"
   RUSTDESK_CONN_TYPE: "incoming"
   RUSTDESK_HIDE_SERVER_SETTINGS: "true"
+  RUSTDESK_DISABLE_INSTALLATION: "true"
 
 jobs:
   generate-bridge:
