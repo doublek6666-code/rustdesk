@@ -65,6 +65,101 @@ pub const DEFAULT_KEEP_ALIVE: i32 = 60_000;
 
 const MIN_VER_MULTI_UI_SESSION: &str = "1.2.4";
 
+fn env_value(names: &[&str], compile_time: Option<&str>) -> Option<String> {
+    for name in names {
+        if let Ok(v) = std::env::var(name) {
+            let value = v.trim();
+            if !value.is_empty() {
+                return Some(value.to_owned());
+            }
+        }
+    }
+    compile_time
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+        .map(|v| v.to_owned())
+}
+
+fn env_bool(names: &[&str], compile_time: Option<&str>) -> bool {
+    env_value(names, compile_time)
+        .map(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "y" | "on"))
+        .unwrap_or(false)
+}
+
+pub fn configured_rs_pub_key() -> String {
+    env_value(&["RS_PUB_KEY"], option_env!("RS_PUB_KEY")).unwrap_or_else(|| config::RS_PUB_KEY.to_owned())
+}
+
+pub fn configured_public_servers() -> Vec<String> {
+    let raw = env_value(
+        &["ID_SERVER", "RENDEZVOUS_SERVER"],
+        option_env!("ID_SERVER").or(option_env!("RENDEZVOUS_SERVER")),
+    );
+    raw.map(|v| {
+        v.split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_owned())
+            .collect()
+    })
+    .unwrap_or_else(|| config::RENDEZVOUS_SERVERS.iter().map(|s| s.to_string()).collect())
+}
+
+fn apply_env_config_overrides() {
+    if let Some(id_server) = configured_public_servers().first().cloned() {
+        *config::PROD_RENDEZVOUS_SERVER.write().unwrap() = id_server;
+    }
+    if let Some(conn_type) = env_value(&["RUSTDESK_CONN_TYPE"], option_env!("RUSTDESK_CONN_TYPE"))
+    {
+        let conn_type = conn_type.to_ascii_lowercase();
+        if conn_type == "incoming" || conn_type == "outgoing" {
+            config::HARD_SETTINGS
+                .write()
+                .unwrap()
+                .insert("conn-type".to_owned(), conn_type);
+        }
+    }
+    if env_bool(
+        &["RUSTDESK_DISABLE_SETTINGS", "RUSTDESK_CONFIG_FORBID_CHANGE"],
+        option_env!("RUSTDESK_DISABLE_SETTINGS").or(option_env!("RUSTDESK_CONFIG_FORBID_CHANGE")),
+    ) {
+        config::HARD_SETTINGS
+            .write()
+            .unwrap()
+            .insert("disable-settings".to_owned(), "Y".to_owned());
+    }
+    if env_bool(
+        &["RUSTDESK_HIDE_SERVER_SETTINGS", "RUSTDESK_CONFIG_FORBID_CHANGE"],
+        option_env!("RUSTDESK_HIDE_SERVER_SETTINGS")
+            .or(option_env!("RUSTDESK_CONFIG_FORBID_CHANGE")),
+    ) {
+        config::BUILTIN_SETTINGS
+            .write()
+            .unwrap()
+            .insert(keys::OPTION_HIDE_SERVER_SETTINGS.to_owned(), "Y".to_owned());
+    }
+    if env_bool(
+        &["RUSTDESK_HIDE_PROXY_SETTINGS", "RUSTDESK_CONFIG_FORBID_CHANGE"],
+        option_env!("RUSTDESK_HIDE_PROXY_SETTINGS")
+            .or(option_env!("RUSTDESK_CONFIG_FORBID_CHANGE")),
+    ) {
+        config::BUILTIN_SETTINGS
+            .write()
+            .unwrap()
+            .insert(keys::OPTION_HIDE_PROXY_SETTINGS.to_owned(), "Y".to_owned());
+    }
+    if env_bool(
+        &["RUSTDESK_HIDE_WEBSOCKET_SETTINGS", "RUSTDESK_CONFIG_FORBID_CHANGE"],
+        option_env!("RUSTDESK_HIDE_WEBSOCKET_SETTINGS")
+            .or(option_env!("RUSTDESK_CONFIG_FORBID_CHANGE")),
+    ) {
+        config::BUILTIN_SETTINGS
+            .write()
+            .unwrap()
+            .insert(keys::OPTION_HIDE_WEBSOCKET_SETTINGS.to_owned(), "Y".to_owned());
+    }
+}
+
 pub mod input {
     pub const MOUSE_TYPE_MOVE: i32 = 0;
     pub const MOUSE_TYPE_DOWN: i32 = 1;
@@ -122,6 +217,7 @@ impl Drop for SimpleCallOnReturn {
 }
 
 pub fn global_init() -> bool {
+    apply_env_config_overrides();
     #[cfg(target_os = "linux")]
     {
         if !crate::platform::linux::is_x11() {
@@ -1819,7 +1915,7 @@ pub async fn get_key(sync: bool) -> String {
         options.remove("key").unwrap_or_default()
     };
     if key.is_empty() {
-        key = config::RS_PUB_KEY.to_owned();
+        key = configured_rs_pub_key();
     }
     key
 }

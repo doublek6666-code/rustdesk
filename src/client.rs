@@ -48,7 +48,7 @@ use hbb_common::{
     bail,
     config::{
         self, keys, use_ws, Config, LocalConfig, PeerConfig, PeerInfoSerde, Resolution,
-        CONNECT_TIMEOUT, READ_TIMEOUT, RELAY_PORT, RENDEZVOUS_PORT, RENDEZVOUS_SERVERS,
+        CONNECT_TIMEOUT, READ_TIMEOUT, RELAY_PORT, RENDEZVOUS_PORT,
     },
     fs::JobType,
     futures::future::{select_ok, FutureExt},
@@ -293,14 +293,16 @@ impl Client {
             crate::get_rendezvous_server(1_000).await
         } else {
             if other_server == PUBLIC_SERVER {
-                (
-                    check_port(RENDEZVOUS_SERVERS[0], RENDEZVOUS_PORT),
-                    RENDEZVOUS_SERVERS[1..]
-                        .iter()
-                        .map(|x| x.to_string())
-                        .collect(),
-                    true,
-                )
+                let servers = crate::configured_public_servers();
+                if let Some(first) = servers.first() {
+                    (
+                        check_port(first, RENDEZVOUS_PORT),
+                        servers[1..].to_vec(),
+                        true,
+                    )
+                } else {
+                    (check_port(PUBLIC_SERVER, RENDEZVOUS_PORT), Vec::new(), true)
+                }
             } else {
                 (check_port(other_server, RENDEZVOUS_PORT), Vec::new(), true)
             }
@@ -761,11 +763,8 @@ impl Client {
         key: &str,
         conn: &mut Stream,
     ) -> ResultType<Option<Vec<u8>>> {
-        let rs_pk = get_rs_pk(if key.is_empty() {
-            config::RS_PUB_KEY
-        } else {
-            key
-        });
+        let default_pk = crate::configured_rs_pub_key();
+        let rs_pk = get_rs_pk(if key.is_empty() { &default_pk } else { key });
         let mut sign_pk = None;
         let mut option_pk = None;
         if !signed_id_pk.is_empty() {
@@ -1793,7 +1792,7 @@ impl LoginConfigHandler {
             let server = server_key.next().unwrap_or_default();
             let args = server_key.next().unwrap_or_default();
             let key = if server == PUBLIC_SERVER {
-                config::RS_PUB_KEY.to_owned()
+                crate::configured_rs_pub_key()
             } else {
                 let mut args_map: HashMap<String, &str> = HashMap::new();
                 for arg in args.split('&') {
