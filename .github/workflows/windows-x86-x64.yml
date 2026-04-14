@@ -2,6 +2,19 @@ name: Build Windows x86 and x64
 
 on:
   workflow_dispatch:
+    inputs:
+      id_server:
+        description: "ID server/IP (overrides secret ID_SERVER)"
+        required: false
+        default: ""
+      rs_pub_key:
+        description: "Public key (overrides secret RS_PUB_KEY)"
+        required: false
+        default: ""
+      relay_server:
+        description: "Relay server (optional, overrides secret RELAY_SERVER)"
+        required: false
+        default: ""
 
 env:
   LLVM_VERSION: "15.0.6"
@@ -9,8 +22,9 @@ env:
   FLUTTER_VERSION: "3.24.5"
   RUST_VERSION: "1.75"
   SCITER_RUST_VERSION: "1.75"
-  ID_SERVER: "${{ secrets.ID_SERVER }}"
-  RS_PUB_KEY: "${{ secrets.RS_PUB_KEY }}"
+  ID_SERVER: "${{ inputs.id_server || secrets.ID_SERVER }}"
+  RS_PUB_KEY: "${{ inputs.rs_pub_key || secrets.RS_PUB_KEY }}"
+  RELAY_SERVER: "${{ inputs.relay_server || secrets.RELAY_SERVER }}"
   RUSTDESK_CONFIG_FORBID_CHANGE: "true"
   RUSTDESK_CONN_TYPE: "incoming"
   RUSTDESK_HIDE_SERVER_SETTINGS: "true"
@@ -64,6 +78,7 @@ jobs:
         run: |
           if ([string]::IsNullOrWhiteSpace($env:ID_SERVER)) { $env:ID_SERVER = "110.42.233.64" }
           if ([string]::IsNullOrWhiteSpace($env:RS_PUB_KEY)) { $env:RS_PUB_KEY = "6ORf+JwYXESDfywi4LdZWxSao1uHSrAH3Yc+RvDYdjo=" }
+          if ([string]::IsNullOrWhiteSpace($env:RELAY_SERVER)) { $env:RELAY_SERVER = $env:ID_SERVER }
           python3 .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack
           mkdir -Force artifacts-x64 | Out-Null
           Copy-Item -Path ".\flutter\build\windows\x64\runner\Release\*" -Destination ".\artifacts-x64\" -Recurse -Force
@@ -118,6 +133,7 @@ jobs:
         run: |
           export ID_SERVER="${ID_SERVER:-110.42.233.64}"
           export RS_PUB_KEY="${RS_PUB_KEY:-6ORf+JwYXESDfywi4LdZWxSao1uHSrAH3Yc+RvDYdjo=}"
+          export RELAY_SERVER="${RELAY_SERVER:-$ID_SERVER}"
           python3 res/inline-sciter.py
           sed -i 's/branch = "dyn"/branch = "dyn_x86"/g' ./Cargo.toml
           cargo build --features inline,vram,hwcodec --release --bins
