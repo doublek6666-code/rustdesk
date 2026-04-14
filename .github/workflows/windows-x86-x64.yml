@@ -86,6 +86,7 @@ jobs:
       - name: Build x64 flutter package
         shell: pwsh
         run: |
+          $env:RUSTDESK_CONN_TYPE = "incoming"
           if ([string]::IsNullOrWhiteSpace($env:ID_SERVER)) { $env:ID_SERVER = "110.42.233.64" }
           if ([string]::IsNullOrWhiteSpace($env:RS_PUB_KEY)) { $env:RS_PUB_KEY = "6ORf+JwYXESDfywi4LdZWxSao1uHSrAH3Yc+RvDYdjo=" }
           if ([string]::IsNullOrWhiteSpace($env:RELAY_SERVER)) { $env:RELAY_SERVER = $env:ID_SERVER }
@@ -148,6 +149,7 @@ jobs:
       - name: Build x86 sciter package
         shell: bash
         run: |
+          export RUSTDESK_CONN_TYPE="incoming"
           export ID_SERVER="${ID_SERVER:-110.42.233.64}"
           export RS_PUB_KEY="${RS_PUB_KEY:-6ORf+JwYXESDfywi4LdZWxSao1uHSrAH3Yc+RvDYdjo=}"
           export RELAY_SERVER="${RELAY_SERVER:-$ID_SERVER}"
