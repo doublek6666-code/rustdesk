@@ -129,15 +129,6 @@ fn apply_env_config_overrides() {
             .insert("disable-settings".to_owned(), "Y".to_owned());
     }
     if env_bool(
-        &["RUSTDESK_DISABLE_INSTALLATION"],
-        option_env!("RUSTDESK_DISABLE_INSTALLATION"),
-    ) {
-        config::HARD_SETTINGS
-            .write()
-            .unwrap()
-            .insert("disable-installation".to_owned(), "Y".to_owned());
-    }
-    if env_bool(
         &["RUSTDESK_HIDE_SERVER_SETTINGS", "RUSTDESK_CONFIG_FORBID_CHANGE"],
         option_env!("RUSTDESK_HIDE_SERVER_SETTINGS")
             .or(option_env!("RUSTDESK_CONFIG_FORBID_CHANGE")),
@@ -166,6 +157,19 @@ fn apply_env_config_overrides() {
             .write()
             .unwrap()
             .insert(keys::OPTION_HIDE_WEBSOCKET_SETTINGS.to_owned(), "Y".to_owned());
+    }
+    if let Some(allow_auto_update) = env_value(
+        &["RUSTDESK_ALLOW_AUTO_UPDATE"],
+        option_env!("RUSTDESK_ALLOW_AUTO_UPDATE"),
+    ) {
+        let enabled = matches!(
+            allow_auto_update.to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "y" | "on"
+        );
+        config::OVERWRITE_SETTINGS.write().unwrap().insert(
+            keys::OPTION_ALLOW_AUTO_UPDATE.to_owned(),
+            if enabled { "Y" } else { "N" }.to_owned(),
+        );
     }
 }
 
