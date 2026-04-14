@@ -30,8 +30,12 @@ env:
   RUSTDESK_HIDE_SERVER_SETTINGS: "true"
 
 jobs:
+  generate-bridge:
+    uses: ./.github/workflows/bridge.yml
+
   windows-x64-flutter:
     name: windows-x64-flutter
+    needs: [generate-bridge]
     runs-on: windows-2022
     steps:
       - name: Checkout source code
@@ -56,6 +60,12 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           targets: x86_64-pc-windows-msvc
           components: rustfmt
+
+      - name: Restore bridge files
+        uses: actions/download-artifact@master
+        with:
+          name: bridge-artifact
+          path: ./
 
       - uses: Swatinem/rust-cache@v2
 
@@ -91,6 +101,7 @@ jobs:
 
   windows-x86-sciter:
     name: windows-x86-sciter
+    needs: [generate-bridge]
     runs-on: windows-2022
     steps:
       - name: Checkout source code
@@ -109,6 +120,12 @@ jobs:
           toolchain: nightly-2023-10-13-i686-pc-windows-msvc
           targets: i686-pc-windows-msvc
           components: rustfmt
+
+      - name: Restore bridge files
+        uses: actions/download-artifact@master
+        with:
+          name: bridge-artifact
+          path: ./
 
       - uses: Swatinem/rust-cache@v2
         with:
