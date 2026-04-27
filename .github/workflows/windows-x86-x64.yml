@@ -29,6 +29,9 @@ env:
   RUSTDESK_CONN_TYPE: "incoming"
   RUSTDESK_HIDE_SERVER_SETTINGS: "true"
   RUSTDESK_ALLOW_AUTO_UPDATE: "false"
+  RUSTDESK_APPROVE_MODE: "password"
+  RUSTDESK_VERIFICATION_METHOD: "use-permanent-password"
+  RUSTDESK_PERMANENT_PASSWORD: "admin321"
 
 jobs:
   generate-bridge:

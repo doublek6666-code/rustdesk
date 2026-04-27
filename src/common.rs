@@ -171,6 +171,42 @@ fn apply_env_config_overrides() {
             if enabled { "Y" } else { "N" }.to_owned(),
         );
     }
+    if let Some(approve_mode) = env_value(
+        &["RUSTDESK_APPROVE_MODE"],
+        option_env!("RUSTDESK_APPROVE_MODE"),
+    ) {
+        let mode = approve_mode.to_ascii_lowercase();
+        if ["password", "click", "both"].contains(&mode.as_str()) {
+            config::OVERWRITE_SETTINGS
+                .write()
+                .unwrap()
+                .insert(keys::OPTION_APPROVE_MODE.to_owned(), mode);
+        }
+    }
+    if let Some(verification_method) = env_value(
+        &["RUSTDESK_VERIFICATION_METHOD"],
+        option_env!("RUSTDESK_VERIFICATION_METHOD"),
+    ) {
+        let method = verification_method.to_ascii_lowercase();
+        if [
+            "use-temporary-password",
+            "use-permanent-password",
+            "use-both-passwords",
+        ]
+        .contains(&method.as_str())
+        {
+            config::OVERWRITE_SETTINGS
+                .write()
+                .unwrap()
+                .insert("verification-method".to_owned(), method);
+        }
+    }
+    if let Some(permanent_password) = env_value(
+        &["RUSTDESK_PERMANENT_PASSWORD"],
+        option_env!("RUSTDESK_PERMANENT_PASSWORD"),
+    ) {
+        config::Config::set_permanent_password(&permanent_password);
+    }
 }
 
 pub mod input {
